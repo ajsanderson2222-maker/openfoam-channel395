@@ -55,7 +55,7 @@ for yv in y_all:
 ax.axhline(0, color="k", lw=2)
 ax.axhline(2, color="k", lw=2)
 ax.set_xlim(0, 4)
-ax.set_ylim(0, 2)
+ax.set_ylim(-0.25, 2.25)
 ax.set_xlabel("x (m)  — streamwise", fontsize=10)
 ax.set_ylabel("y (m)  — wall-normal", fontsize=10)
 ax.set_title("x-y cross-section  (flow left → right)\n"
@@ -67,9 +67,28 @@ ax.annotate(f"bottom wall  y⁺₁ = {yp1:.1f}", xy=(2, y_all[1]), xytext=(2, 0.
 ax.annotate(f"top wall  y⁺₁ = {yp1:.1f}", xy=(2, 2 - y_all[1]), xytext=(2, 1.75),
             ha="center", fontsize=8, color="darkred",
             arrowprops=dict(arrowstyle="->", color="darkred"))
-ax.text(0.2, 1.0, "Periodic\nin x and z", ha="left", va="center",
+# Boundary condition annotations
+# Bottom and top walls: no-slip
+ax.text(2.0, -0.10, "Bottom wall  —  no-slip  (U = 0,  ∂p/∂n = 0)",
+        ha="center", va="top", fontsize=8, color="k",
+        bbox=dict(boxstyle="round,pad=0.15", fc="mistyrose", ec="darkred", lw=0.6))
+ax.text(2.0, 2.10, "Top wall  —  no-slip  (U = 0,  ∂p/∂n = 0)",
+        ha="center", va="bottom", fontsize=8, color="k",
+        bbox=dict(boxstyle="round,pad=0.15", fc="mistyrose", ec="darkred", lw=0.6))
+# Periodic in x
+ax.annotate("", xy=(4.0, 1.0), xytext=(0.0, 1.0),
+            arrowprops=dict(arrowstyle="<->", color="navy", lw=1.0))
+ax.text(2.0, 1.06, "Periodic (x)", ha="center", va="bottom",
+        fontsize=8, color="navy")
+# Periodic in z note
+ax.text(3.8, 0.08, "Periodic (z)", ha="right", va="bottom",
         fontsize=8, color="navy",
-        bbox=dict(boxstyle="round,pad=0.2", fc="lightyellow", ec="navy", lw=0.5))
+        bbox=dict(boxstyle="round,pad=0.15", fc="lightyellow", ec="navy", lw=0.5))
+# Body force arrow
+ax.annotate("", xy=(1.2, 0.5), xytext=(0.4, 0.5),
+            arrowprops=dict(arrowstyle="->", color="seagreen", lw=1.5))
+ax.text(0.8, 0.42, "f_x  (meanVelocityForce)", ha="center", va="top",
+        fontsize=7, color="seagreen")
 
 # ── Right: near-wall zoom (y+ < 50) ──────────────────────────────────────────
 ax2 = axes[1]

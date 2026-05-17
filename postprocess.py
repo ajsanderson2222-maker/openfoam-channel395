@@ -4,6 +4,7 @@ Validates mean velocity and Reynolds stresses against Moser, Kim & Mansour (1999
 Produces:
   images/convergence.png  — mean streamwise velocity history
   images/validation.png   — U+ vs y+, k+ vs y+, -<u'v'>+ vs y+
+  images/contours.png     — x-y slice of mean and instantaneous streamwise velocity
 """
 
 import numpy as np
@@ -165,3 +166,86 @@ fig.tight_layout()
 fig.savefig(IMAGES / "convergence.png", dpi=150)
 plt.close(fig)
 print("convergence.png done")
+
+# ── Velocity contour plots from VTK (foamToVTK output) ───────────────────────
+VTK_FILE = Path("VTK/openfoam-channel395_5000.vtk")
+if VTK_FILE.exists():
+    try:
+        import vtk as _vtk
+        import vtk.util.numpy_support as vtk_np
+
+        reader = _vtk.vtkUnstructuredGridReader()
+        reader.SetFileName(str(VTK_FILE))
+        reader.ReadAllScalarsOn()
+        reader.ReadAllVectorsOn()
+        reader.Update()
+        grid = reader.GetOutput()
+
+        pts = vtk_np.vtk_to_numpy(grid.GetPoints().GetData())
+        pd  = grid.GetPointData()
+
+        def get_arr(name):
+            a = pd.GetArray(name)
+            return vtk_np.vtk_to_numpy(a) if a else None
+
+        UMean = get_arr("UMean")          # (N,3) time-averaged velocity
+        U_inst = get_arr("U")             # (N,3) instantaneous velocity
+
+        # Extract z-midplane slice (z closest to domain centre z=1.0)
+        z_unique = np.unique(pts[:, 2])
+        z_mid    = z_unique[np.argmin(np.abs(z_unique - 1.0))]
+        mask_z   = np.abs(pts[:, 2] - z_mid) < 1e-4
+
+        x_sl  = pts[mask_z, 0]
+        y_sl  = pts[mask_z, 1]
+        Um_sl = UMean[mask_z, 0]   # streamwise component of time-averaged U
+
+        # Wall units for y-axis label
+        yp_sl = y_sl * u_tau / nu
+        Up_sl = Um_sl / u_tau
+
+        fig, axes = plt.subplots(1, 2, figsize=(14, 4.5))
+
+        # ── Panel 1: mean streamwise velocity UMean_x ─────────────────────────
+        ax = axes[0]
+        sc = ax.scatter(x_sl, y_sl, c=Up_sl, cmap="RdYlBu_r", s=4,
+                        vmin=0, vmax=Up_sl.max() * 1.05, rasterized=True)
+        cb = fig.colorbar(sc, ax=ax, pad=0.02)
+        cb.set_label("U⁺ = ⟨U_x⟩ / u_τ", fontsize=9)
+        ax.axhline(0, color="k", lw=1.5)
+        ax.axhline(2, color="k", lw=1.5)
+        ax.set_xlabel("x (m) — streamwise", fontsize=10)
+        ax.set_ylabel("y (m) — wall-normal", fontsize=10)
+        ax.set_title("Time-averaged streamwise velocity ⟨U_x⟩⁺\n"
+                     f"z-midplane slice  (Reτ = {Re_tau:.0f}, WALE LES)", fontsize=9)
+        ax.set_xlim(0, 4); ax.set_ylim(0, 2)
+
+        # ── Panel 2: instantaneous streamwise velocity ─────────────────────────
+        if U_inst is not None:
+            Ui_sl  = U_inst[mask_z, 0] / u_tau
+            ax2 = axes[1]
+            sc2 = ax2.scatter(x_sl, y_sl, c=Ui_sl, cmap="RdYlBu_r", s=4,
+                              vmin=0, vmax=Ui_sl.max() * 1.05, rasterized=True)
+            cb2 = fig.colorbar(sc2, ax=ax2, pad=0.02)
+            cb2.set_label("U⁺ = U_x / u_τ", fontsize=9)
+            ax2.axhline(0, color="k", lw=1.5)
+            ax2.axhline(2, color="k", lw=1.5)
+            ax2.set_xlabel("x (m) — streamwise", fontsize=10)
+            ax2.set_ylabel("y (m) — wall-normal", fontsize=10)
+            ax2.set_title("Instantaneous streamwise velocity U_x⁺\n"
+                          "(turbulent structures visible near walls)", fontsize=9)
+            ax2.set_xlim(0, 4); ax2.set_ylim(0, 2)
+        else:
+            axes[1].set_visible(False)
+
+        fig.suptitle(f"Channel Reτ = {Re_tau:.0f} — LES velocity field at t = 5000 s",
+                     fontsize=11)
+        fig.tight_layout()
+        fig.savefig(IMAGES / "contours.png", dpi=150, bbox_inches="tight")
+        plt.close(fig)
+        print("contours.png done")
+
+    except ImportError:
+        print("vtk python package not found — skipping contours.png")
+else:
+    print(f"VTK file {VTK_FILE} not found — run foamToVTK first")
