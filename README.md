@@ -119,6 +119,14 @@ and are well converged by t ≈ 500.
 
 ---
 
+## Flow Animation
+
+Instantaneous streamwise velocity U_x⁺ on the z-midplane — 26 snapshots from t = 0 to 5000 s (≈ 39 δ/u_τ per frame). Near-wall low-speed streaks and the high-velocity core are visible throughout the run.
+
+![Animation](images/channel395.gif)
+
+---
+
 ## Results
 
 ### Convergence
